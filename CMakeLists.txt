@@ -154,6 +154,8 @@ conan_add_remote(NAME bincrafters
 list(APPEND CONAN_BUILD "missing")
 
 conan_cmake_run(REQUIRES
+  boost/1.73.0
+  fmt/7.1.3
   benchmark/1.5.2
   BASIC_SETUP CMAKE_TARGETS NO_OUTPUT_DIRS
   OPTIONS ${CONAN_OPTIONS}
