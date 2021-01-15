@@ -177,12 +177,16 @@ include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 
 include_directories(${PROJECT_BINARY_DIR})
 
-# Executable
-add_executable(Test
-  # TODO: change here
-  basics.cpp
-)
-target_link_libraries(Test
-  CONAN_PKG::benchmark
-  CONAN_PKG::boost
-)
+# Executables: one per cpp file
+# file( GLOB APP_SOURCES RELATIVE app/*.cxx )
+file(GLOB BENCH_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/bench*.cpp)
+
+foreach( bench_file ${BENCH_FILES} )
+    string(REPLACE ".cpp" "" bench_name ${bench_file})
+    message("bench_name=${bench_name}")
+    add_executable( ${bench_name} ${bench_file} )
+    target_link_libraries(${bench_name}
+      CONAN_PKG::benchmark
+      CONAN_PKG::boost
+    )
+endforeach()
