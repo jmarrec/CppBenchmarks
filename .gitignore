@@ -1,5 +1,6 @@
 build/
 compile_commands.json
+results/
 
 # Prerequisites
 *.d
@@ -33,3 +34,5 @@ compile_commands.json
 *.exe
 *.out
 *.app
+
+__pycache__

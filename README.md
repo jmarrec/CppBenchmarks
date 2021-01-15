@@ -36,3 +36,41 @@ benchmark [--benchmark_list_tests={true|false}]
           [--benchmark_counters_tabular={true|false}]
           [--v=<verbosity>]
 ```
+
+## Python CLI to plot results
+
+A small utility to run a specific benchmark executable and plot a bar chart of the results.
+
+```
+# List available benchmark executables. You should have built the project first!
+(py39)julien@CppBenchmarks (main %>)$ python plot_results.py -l
+
+The following benchmark executables are available:
+* bench_IdfObject_print
+* bench_basics
+
+# Run benchmark and see results
+(py39)julien@CppBenchmarks (main +>)$ python plot_results.py bench_IdfObject_print
+
+2021-01-15T14:50:06+01:00
+Running /home/julien/Software/CppBenchmarks/build/Products/bench_IdfObject_print
+Run on (12 X 4100 MHz CPU s)
+CPU Caches:
+  L1 Data 32 KiB (x6)
+  L1 Instruction 32 KiB (x6)
+  L2 Unified 256 KiB (x6)
+  L3 Unified 9216 KiB (x1)
+Load Average: 1.24, 1.25, 1.16
+***WARNING*** CPU scaling is enabled, the benchmark real time measurements may be noisy and will incur extra overhead.
+-------------------------------------------------------------
+Benchmark                   Time             CPU   Iterations
+-------------------------------------------------------------
+BM_OutputN             191084 ns       153003 ns         4517
+BM_OutputEndl         1925007 ns      1874790 ns          372
+BM_BoostOutputN        195299 ns       155654 ns         4459
+BM_BoostOutputEndl    2030197 ns      1980846 ns          358
+```
+
+A matplotlib window will pop up with the graph:
+
+![Matplotlib results](images/plot_results.png)
