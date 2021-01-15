@@ -1,13 +1,14 @@
 """Run and plot results for a benchmark.
 
 Usage:
-  plot_results.py BENCH_NAME
+  plot_results.py [--stacked] BENCH_NAME
   plot_results.py (-l | --list)
   plot_results.py (-h | --help)
 
 Options:
   -h --help     Show this screen.
   -l --list     List available benchmark executables
+  --stacked     Use a stacked bar chart of cpu_time & real_time
 
 Example:
   plot_results.py bench_basics
@@ -62,7 +63,7 @@ def list_benchmarks(products_dir: Path) -> list[str]:
 
 if __name__ == '__main__':
     arguments = docopt(__doc__)
-    print(arguments)
+    # print(arguments)
 
     root_dir = Path(__file__).parent.absolute()
     products_dir = infer_products_dir()
@@ -92,8 +93,19 @@ if __name__ == '__main__':
         f' --benchmark_out="{results_file}"')
     subprocess.check_call(cmd)
     df = pd.read_csv(results_file, skiprows=10, index_col=0)
+
+    if df['error_occurred'].notnull().any():
+        print("Some benchmarks seem to have failed...")
+        print(f"{df.index[df['error_occurred'].notnull()].values}")
+        print("continuining anyways")
+
+    stacked = arguments['--stacked']
+    if stacked:
+        df['real_time'] = df['real_time'] - df['cpu_time']
+
     fig, ax = plt.subplots(figsize=(16, 9))
-    df[['real_time', 'cpu_time']].plot(kind='bar', ax=ax)
+
+    df[['cpu_time', 'real_time']].plot(kind='bar', stacked=stacked, ax=ax)
     time_units = df['time_unit'].unique()
     ax.set_title(bench_name)
     if len(time_units) == 1:

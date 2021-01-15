@@ -41,6 +41,8 @@ benchmark [--benchmark_list_tests={true|false}]
 
 A small utility to run a specific benchmark executable and plot a bar chart of the results.
 
+See embedded help via `python plot_results.py --help`
+
 ```
 # List available benchmark executables. You should have built the project first!
 (py39)julien@CppBenchmarks (main %>)$ python plot_results.py -l
@@ -74,3 +76,12 @@ BM_BoostOutputEndl    2030197 ns      1980846 ns          358
 A matplotlib window will pop up with the graph:
 
 ![Matplotlib results](images/plot_results.png)
+
+**Alternatively, pass `--stacked`**:
+
+```
+(py39)julien@CppBenchmarks (main +>)$ python plot_results.py --stacked bench_IdfObject_print
+```
+
+![Matplotlib results stacked](images/plot_results_stacked.png)
+
