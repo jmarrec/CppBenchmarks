@@ -157,6 +157,7 @@ conan_cmake_run(REQUIRES
   boost/1.73.0
   fmt/7.1.3
   benchmark/1.5.2
+  jsoncpp/1.9.3
   BASIC_SETUP CMAKE_TARGETS NO_OUTPUT_DIRS
   OPTIONS ${CONAN_OPTIONS}
   BUILD ${CONAN_BUILD}
@@ -190,5 +191,13 @@ foreach( bench_file ${BENCH_FILES} )
     target_link_libraries(${bench_name}
       CONAN_PKG::benchmark
       CONAN_PKG::boost
+      CONAN_PKG::jsoncpp
+      CONAN_PKG::fmt
     )
+  if (bench_name MATCHES "json")
+    message(STATUS "${bench_name} matches json")
+    target_link_libraries(${bench_name}
+      CONAN_PKG::jsoncpp
+    )
+  endif()
 endforeach()
