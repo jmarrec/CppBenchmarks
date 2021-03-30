@@ -47,6 +47,13 @@ endif()
   #cmake_policy(SET CMP0077 NEW)
 #endif()
 
+add_library(project_options INTERFACE)
+target_compile_features(project_options INTERFACE cxx_std_20)
+
+# sanitizer options if supported by compiler
+include(cmake/Sanitizers.cmake)
+enable_sanitizers(project_options)
+
 ###############################################################################
 #                                  N I N J A                                  #
 ###############################################################################
@@ -122,13 +129,12 @@ if(UNIX)
   endif()
 endif()
 
-
 #######################################################################
 #                              C O N A N                              #
 #######################################################################
 
-set(CMAKE_CONAN_EXPECTED_HASH 709180234748692a642f9e5c4d80d328)
-set(CMAKE_CONAN_VERSION "v0.14")
+set(CMAKE_CONAN_EXPECTED_HASH 170c3250029af321395135a3952a9045)
+set(CMAKE_CONAN_VERSION "v0.16.1")
 
 if(EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
   file(MD5 "${CMAKE_BINARY_DIR}/conan.cmake" CMAKE_CONAN_HASH)
@@ -158,6 +164,7 @@ conan_cmake_run(REQUIRES
   fmt/7.1.3
   benchmark/1.5.2
   jsoncpp/1.9.3
+  gtest/1.10.0
   BASIC_SETUP CMAKE_TARGETS NO_OUTPUT_DIRS
   OPTIONS ${CONAN_OPTIONS}
   BUILD ${CONAN_BUILD}
@@ -201,3 +208,36 @@ foreach( bench_file ${BENCH_FILES} )
     )
   endif()
 endforeach()
+
+
+add_library(testlib
+  TestClass.hpp
+  TestClass.cpp
+)
+
+target_link_libraries(testlib PRIVATE project_options)
+
+add_executable(test_exe
+  test/TestFixture.hpp
+  test/TestFixture.cpp
+
+  test/TestClass_GTest.cpp
+)
+target_link_libraries(test_exe
+  PUBLIC
+  testlib
+  CONAN_PKG::gtest
+)
+target_link_libraries(test_exe
+  PRIVATE
+  project_options
+)
+
+enable_testing()
+
+include(GoogleTest)
+gtest_discover_tests(test_exe
+  # WORKING_DIRECTORY Testing
+)
+
+
