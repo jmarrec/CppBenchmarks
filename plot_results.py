@@ -186,3 +186,4 @@ if __name__ == '__main__':
         )
     fig.tight_layout()
     plt.show()
+    fig.savefig(results_dir / f"{bench_name}.png", dpi=150)
