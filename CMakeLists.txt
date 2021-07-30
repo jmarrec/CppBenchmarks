@@ -192,21 +192,40 @@ include_directories(${PROJECT_BINARY_DIR})
 file(GLOB BENCH_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/bench*.cpp)
 
 foreach( bench_file ${BENCH_FILES} )
-    string(REPLACE ".cpp" "" bench_name ${bench_file})
-    message("bench_name=${bench_name}")
+  string(REPLACE ".cpp" "" bench_name ${bench_file})
+  message("bench_name=${bench_name}")
+
+  if (bench_name MATCHES "json")
     add_executable( ${bench_name} ${bench_file} )
-    target_link_libraries(${bench_name}
+    message(STATUS "${bench_name} matches json")
+    target_link_libraries(${bench_name} PRIVATE
+      CONAN_PKG::benchmark
+      CONAN_PKG::jsoncpp
+    )
+
+  elseif(bench_name MATCHES "OpenMP")
+    find_package(Threads REQUIRED)
+    find_package(OpenMP)
+    if(OpenMP_CXX_FOUND)
+      message("Found OpenMP!")
+      add_executable( ${bench_name} ${bench_file} )
+      target_link_libraries(${bench_name} PRIVATE
+        CONAN_PKG::benchmark
+      )
+      target_link_libraries(${bench_name} INTERFACE Threads::Threads)
+      target_link_libraries(${bench_name} PRIVATE OpenMP::OpenMP_CXX)
+    else()
+      message("OpenMP not Found, skipping ${bench_name}")
+    endif()
+  else()
+    add_executable( ${bench_name} ${bench_file} )
+    target_link_libraries(${bench_name} PRIVATE
       CONAN_PKG::benchmark
       CONAN_PKG::boost
-      CONAN_PKG::jsoncpp
       CONAN_PKG::fmt
     )
-  if (bench_name MATCHES "json")
-    message(STATUS "${bench_name} matches json")
-    target_link_libraries(${bench_name}
-      CONAN_PKG::jsoncpp
-    )
   endif()
+
 endforeach()
 
 
