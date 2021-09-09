@@ -36,3 +36,5 @@ results/
 *.app
 
 __pycache__
+.idea
+cmake-build*/

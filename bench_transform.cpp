@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <string>
+#include <iterator>
 
 std::vector<std::string> makeVector(int64_t len) {
   return std::vector<std::string>(len, "something something something");
