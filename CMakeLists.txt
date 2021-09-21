@@ -155,7 +155,7 @@ conan_check(VERSION 1.21.0 REQUIRED)
 message(STATUS "RUNNING CONAN")
 
 conan_add_remote(NAME bincrafters
-  URL https://api.bintray.com/conan/bincrafters/public-conan)
+  URL https://bincrafters.jfrog.io/artifactory/api/conan/public-conan)
 
 list(APPEND CONAN_BUILD "missing")
 
