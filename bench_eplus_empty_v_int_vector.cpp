@@ -151,3 +151,61 @@ static void BM_withEmpty(benchmark::State& state) {
 
 BENCHMARK(BM_withInt)->Ranges({{1, 512}, {1, 512}})->Complexity();
 BENCHMARK(BM_withEmpty)->Ranges({{1, 512}, {1, 512}})->Complexity();
+
+static void BM_withInt_CheckOnly(benchmark::State& state) {
+
+  EPVector<DataSizing::OARequirementsData> OARequirements;
+  int numOARequirements = state.range(0);
+  int numDSOAIndexes = state.range(1);
+  OARequirements.allocate(numOARequirements);
+
+  for (int OAIndex = 1; OAIndex <= numOARequirements; ++OAIndex) {
+    auto& thisOAReq = OARequirements(OAIndex);
+    thisOAReq.Name = "OARequirements " + std::to_string(OAIndex);
+    for (auto i = 0; i < numDSOAIndexes; ++i) {
+      ++thisOAReq.numDSOA;
+      thisOAReq.dsoaSpaceIndexes.emplace_back(1);
+    }
+  }
+
+  // Code inside this loop is measured repeteadly
+  for (auto _ : state) {
+
+    for (int OAIndex = 1; OAIndex <= numOARequirements; ++OAIndex) {
+      bool isSpaceDSOAList = (OARequirements(OAIndex).numDSOA != 0);
+      benchmark::DoNotOptimize(isSpaceDSOAList);
+    }
+  }  // end state
+
+  state.SetComplexityN(state.range(0));
+}
+
+static void BM_withEmpty_CheckOnly(benchmark::State& state) {
+
+  EPVector<DataSizing::OARequirementsData> OARequirements;
+  int numOARequirements = state.range(0);
+  int numDSOAIndexes = state.range(1);
+  OARequirements.allocate(numOARequirements);
+
+  for (int OAIndex = 1; OAIndex <= numOARequirements; ++OAIndex) {
+    auto& thisOAReq = OARequirements(OAIndex);
+    thisOAReq.Name = "OARequirements " + std::to_string(OAIndex);
+    for (auto i = 0; i < numDSOAIndexes; ++i) {
+      thisOAReq.dsoaSpaceIndexes.emplace_back(1);
+    }
+  }
+
+  // Code inside this loop is measured repeteadly
+  for (auto _ : state) {
+
+    for (int OAIndex = 1; OAIndex <= numOARequirements; ++OAIndex) {
+      bool isSpaceDSOAList = (!OARequirements(OAIndex).dsoaIndexes.empty());
+      benchmark::DoNotOptimize(isSpaceDSOAList);
+    }
+  }  // end state
+
+  state.SetComplexityN(state.range(0));
+}
+
+BENCHMARK(BM_withInt_CheckOnly)->Ranges({{1, 512}, {1, 512}})->Complexity();
+BENCHMARK(BM_withEmpty_CheckOnly)->Ranges({{1, 512}, {1, 512}})->Complexity();
