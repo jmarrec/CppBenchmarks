@@ -47,7 +47,7 @@ bool byConstRefStringView(const std::string_view& e) {
 }
 
 static void BM_ByValStringView(benchmark::State& state) {
-  std::string_view sv("hello");
+  std::string_view sv("hello this is something that is longer than the small string optimization");
 
   // Code inside this loop is measured repeatedly
   for (auto _ : state) {
@@ -57,7 +57,7 @@ static void BM_ByValStringView(benchmark::State& state) {
 }
 
 static void BM_ByConstRefStringView(benchmark::State& state) {
-  std::string_view sv("hello");
+  std::string_view sv("hello this is something that is longer than the small string optimization");
 
   // Code inside this loop is measured repeatedly
   for (auto _ : state) {
@@ -69,3 +69,35 @@ static void BM_ByConstRefStringView(benchmark::State& state) {
 // Register the function as a benchmark
 BENCHMARK(BM_ByValStringView);
 BENCHMARK(BM_ByConstRefStringView);
+
+double byValArray2Doubles(std::array<double, 2> Par) {
+  return Par[0] + 2 * Par[1];
+}
+
+double byConstRefArray2Doubles(const std::array<double, 2>& Par) {
+  return Par[0] + 2 * Par[1];
+}
+
+static void BM_ByValArray2Doubles(benchmark::State& state) {
+  std::array<double, 2> Par{10.0, 20.0};
+
+  // Code inside this loop is measured repeatedly
+  for (auto _ : state) {
+    double d = byValArray2Doubles(Par);
+    benchmark::DoNotOptimize(d);
+  }
+}
+
+static void BM_ByConstRefArray2Doubles(benchmark::State& state) {
+  std::array<double, 2> Par{10.0, 20.0};
+
+  // Code inside this loop is measured repeatedly
+  for (auto _ : state) {
+    double d = byConstRefArray2Doubles(Par);
+    benchmark::DoNotOptimize(d);
+  }
+}
+
+// Register the function as a benchmark
+BENCHMARK(BM_ByValArray2Doubles);
+BENCHMARK(BM_ByConstRefArray2Doubles);

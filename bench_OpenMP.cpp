@@ -15,8 +15,8 @@ static void BM_Regular(benchmark::State& state) {
 static void BM_OpenMP(benchmark::State& state) {
   // Code inside this loop is measured repeatedly
   for (auto _ : state) {
-    # pragma omp parallel for num_threads(16)
-    for (int i = 0; i < 10000000000; ++i) {
+#pragma omp parallel for num_threads(16)
+    for (int i = 0; i < 1000000000; ++i) {
       //std::cout << i << '\n';
       int j = i;
       benchmark::DoNotOptimize(j);
