@@ -15,9 +15,7 @@ static void BM_NoReserve(benchmark::State& state) {
   for (auto _ : state) {
 
     std::vector<std::string> result;
-    std::transform(vectorOfStrings.cbegin(), vectorOfStrings.cend(), std::back_inserter(result),
-                   [](const auto& s) { return s; });
-
+    std::transform(vectorOfStrings.cbegin(), vectorOfStrings.cend(), std::back_inserter(result), [](const auto& s) { return s; });
   }
   state.SetComplexityN(state.range(0));
 }
@@ -30,9 +28,7 @@ static void BM_Reserve(benchmark::State& state) {
 
     std::vector<std::string> result;
     result.reserve(vectorOfStrings.size());
-    std::transform(vectorOfStrings.cbegin(), vectorOfStrings.cend(), std::back_inserter(result),
-                   [](const auto& s) { return s; });
-
+    std::transform(vectorOfStrings.cbegin(), vectorOfStrings.cend(), std::back_inserter(result), [](const auto& s) { return s; });
   }
   state.SetComplexityN(state.range(0));
 }
