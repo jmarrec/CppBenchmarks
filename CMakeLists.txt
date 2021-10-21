@@ -165,6 +165,7 @@ conan_cmake_run(REQUIRES
   benchmark/1.5.2
   jsoncpp/1.9.3
   gtest/1.10.0
+  pugixml/1.10
   BASIC_SETUP CMAKE_TARGETS NO_OUTPUT_DIRS
   OPTIONS ${CONAN_OPTIONS}
   BUILD ${CONAN_BUILD}
@@ -201,6 +202,14 @@ foreach( bench_file ${BENCH_FILES} )
     target_link_libraries(${bench_name} PRIVATE
       CONAN_PKG::benchmark
       CONAN_PKG::jsoncpp
+    )
+
+  elseif (bench_name MATCHES "pugixml")
+    add_executable( ${bench_name} ${bench_file} )
+    message(STATUS "${bench_name} matches pugixml")
+    target_link_libraries(${bench_name} PRIVATE
+      CONAN_PKG::benchmark
+      CONAN_PKG::pugixml
     )
 
   elseif(bench_name MATCHES "OpenMP")
