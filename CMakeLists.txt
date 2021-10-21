@@ -166,6 +166,7 @@ conan_cmake_run(REQUIRES
   jsoncpp/1.9.3
   gtest/1.10.0
   pugixml/1.10
+  tbb/2020.3
   BASIC_SETUP CMAKE_TARGETS NO_OUTPUT_DIRS
   OPTIONS ${CONAN_OPTIONS}
   BUILD ${CONAN_BUILD}
@@ -226,6 +227,12 @@ foreach( bench_file ${BENCH_FILES} )
     else()
       message("OpenMP not Found, skipping ${bench_name}")
     endif()
+  elseif(bench_name MATCHES "bench_stl_parallel")
+    add_executable( ${bench_name} ${bench_file} )
+    target_link_libraries(${bench_name} PRIVATE
+      CONAN_PKG::benchmark
+      CONAN_PKG::tbb
+    )
   else()
     add_executable( ${bench_name} ${bench_file} )
     target_link_libraries(${bench_name} PRIVATE
