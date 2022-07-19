@@ -133,24 +133,32 @@ endif()
 #                              C O N A N                              #
 #######################################################################
 
-set(CMAKE_CONAN_EXPECTED_HASH 170c3250029af321395135a3952a9045)
-set(CMAKE_CONAN_VERSION "v0.16.1")
+set(CMAKE_CONAN_EXPECTED_HASH
+    5cdb3042632da3efff558924eecefd580a0e786863a857ca097c3d1d43df5dcd)
+set(CMAKE_CONAN_VERSION "0.18.1")
 
 if(EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
-  file(MD5 "${CMAKE_BINARY_DIR}/conan.cmake" CMAKE_CONAN_HASH)
-endif()
-if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake" OR NOT "${CMAKE_CONAN_HASH}" MATCHES "${CMAKE_CONAN_EXPECTED_HASH}")
+  file(SHA256 "${CMAKE_BINARY_DIR}/conan.cmake" CMAKE_CONAN_HASH)
+elseif(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake"
+       OR NOT "${CMAKE_CONAN_HASH}" MATCHES "${CMAKE_CONAN_EXPECTED_HASH}")
   # Put it in CMAKE_BINARY_DIR so we don't end up with two when building OpenStudioApplication
-  message(STATUS "Downloading conan.cmake ${CMAKE_CONAN_VERSION} from https://github.com/conan-io/cmake-conan")
-  file(DOWNLOAD "https://github.com/conan-io/cmake-conan/raw/${CMAKE_CONAN_VERSION}/conan.cmake"
-     "${CMAKE_BINARY_DIR}/conan.cmake")
+  message(
+    STATUS
+      "Downloading conan.cmake ${CMAKE_CONAN_VERSION} from https://github.com/conan-io/cmake-conan"
+  )
+  file(
+    DOWNLOAD
+    "https://raw.githubusercontent.com/conan-io/cmake-conan/${CMAKE_CONAN_VERSION}/conan.cmake"
+    "${CMAKE_BINARY_DIR}/conan.cmake"
+    EXPECTED_HASH SHA256=${CMAKE_CONAN_EXPECTED_HASH}
+    TLS_VERIFY ON)
 else()
   message(STATUS "Using existing conan.cmake")
 endif()
 
 include(${CMAKE_BINARY_DIR}/conan.cmake)
 
-conan_check(VERSION 1.21.0 REQUIRED)
+conan_check(VERSION 1.48.0 REQUIRED)
 
 message(STATUS "RUNNING CONAN")
 
@@ -160,12 +168,13 @@ conan_add_remote(NAME bincrafters
 list(APPEND CONAN_BUILD "missing")
 
 conan_cmake_run(REQUIRES
-  boost/1.73.0
-  fmt/7.1.3
-  benchmark/1.5.2
-  jsoncpp/1.9.3
-  gtest/1.10.0
-  pugixml/1.10
+  boost/1.79.0
+  fmt/8.1.1
+  benchmark/1.6.1
+  jsoncpp/1.9.5
+  gtest/1.11.0
+  pugixml/1.12.1
+  xerces-c/3.2.3
   tbb/2020.3
   BASIC_SETUP CMAKE_TARGETS NO_OUTPUT_DIRS
   OPTIONS ${CONAN_OPTIONS}
@@ -268,6 +277,21 @@ target_link_libraries(test_exe
   project_options
 )
 
+add_executable(xerces_test
+  test/TestFixture.hpp
+  test/TestFixture.cpp
+
+  test/TestXerces_GTest.cpp
+  test/DOMTreeErrorReporter.hpp
+  test/DOMTreeErrorReporter.cpp
+  )
+target_link_libraries(xerces_test
+  PUBLIC
+  CONAN_PKG::gtest
+  CONAN_PKG::xerces-c
+  PRIVATE
+  project_options
+)
 enable_testing()
 
 include(GoogleTest)
