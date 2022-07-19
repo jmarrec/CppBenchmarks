@@ -167,7 +167,26 @@ conan_add_remote(NAME bincrafters
 
 list(APPEND CONAN_BUILD "missing")
 
-conan_cmake_run(REQUIRES
+if(CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
+  set(CONAN_CMAKE_MULTI ON)
+  if (NOT CONAN_CONFIGURATION_TYPES)
+    # Cache it, and let user change it (if they want to pull RelWithDebInfo for eg)
+    set(CONAN_CONFIGURATION_TYPES "Release;Debug" CACHE STRING "List of configurations for which you want to fetch conan packages")
+    mark_as_advanced(CONAN_CONFIGURATION_TYPES)
+  endif()
+  message(STATUS "Conan: Using cmake_multi generator")
+  set(CONAN_GENERATOR "cmake_multi")
+else()
+  message(STATUS "Conan: Using cmake generator")
+  set(CONAN_CMAKE_MULTI OFF)
+  set(CONAN_GENERATOR "cmake")
+  set(CONAN_CONFIGURATION_TYPES ${CMAKE_BUILD_TYPE})
+endif()
+
+message(STATUS "Conan: conan_cmake_configure")
+# This will create the conanfile.txt
+conan_cmake_configure(
+  REQUIRES
   boost/1.79.0
   fmt/8.1.1
   benchmark/1.6.1
@@ -176,13 +195,34 @@ conan_cmake_run(REQUIRES
   pugixml/1.12.1
   xerces-c/3.2.3
   tbb/2020.3
-  BASIC_SETUP CMAKE_TARGETS NO_OUTPUT_DIRS
-  OPTIONS ${CONAN_OPTIONS}
-  BUILD ${CONAN_BUILD}
-  # Passes `-u, --update`    to conan install: Check updates exist from upstream remotes
-  # That and build=outdated should ensure we track the right
-  # UPDATE
+  GENERATORS ${CONAN_GENERATOR}
 )
+
+foreach(build_type ${CONAN_CONFIGURATION_TYPES})
+  conan_cmake_autodetect(settings BUILD_TYPE ${build_type})
+  message(STATUS "Conan: Autodetected settings for build type ${build_type}: ${settings}")
+
+  # Avoid polluting with cppstd which prevents downloading some existing binary packages (like boost)
+  # Former deprecated conan_cmake_run was NOT adding compiler.cppstd
+  foreach(ARG ${settings})
+    if(${ARG} MATCHES "compiler.cppstd=(.*)")
+      message("Removing ${ARG}")
+      list(REMOVE_ITEM settings ${ARG})
+    endif()
+  endforeach()
+
+  conan_cmake_install(PATH_OR_REFERENCE .
+    BUILD ${CONAN_BUILD}
+    OPTIONS ${CONAN_OPTIONS}
+    SETTINGS ${settings}
+    ${CONAN_UPDATE}
+  )
+endforeach()
+
+# Loads the conanbuildinfo.cmake / conanbuildinfo_multi.cmake
+conan_load_buildinfo()
+# conan_basic_setup in the conanbuildinfo.cmake. TARGETS => set cmake targets, NO_OUTPUT_DIRS => Don't modify the BIN / LIB folders etc
+conan_basic_setup(TARGETS NO_OUTPUT_DIRS)
 
 message("CONAN_LIBS=${CONAN_LIBS}")
 
