@@ -59,35 +59,34 @@ enable_sanitizers(project_options)
 ###############################################################################
 # Ninja support: has to be atop for it to take effect before anything else is done
 # Add Color Output if Using Ninja
-macro(AddCXXFlagIfSupported flag test)
-  CHECK_CXX_COMPILER_FLAG(${flag} ${test})
-  if(${${test}})
-    message("adding ${flag}")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}")
+# Enhance error reporting and compiler messages
+if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
+  if(WIN32)
+    # On Windows cuda nvcc uses cl and not clang
+    add_compile_options($<$<COMPILE_LANGUAGE:C>:-fcolor-diagnostics> $<$<COMPILE_LANGUAGE:CXX>:-fcolor-diagnostics>)
+  else()
+    add_compile_options(-fcolor-diagnostics)
   endif()
-endmacro()
-
-if("Ninja" STREQUAL ${CMAKE_GENERATOR})
-  # Clang
-  if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    AddCXXFlagIfSupported(-fcolor-diagnostics COMPILER_SUPPORTS_fcolor-diagnostics)
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  if(WIN32)
+    # On Windows cuda nvcc uses cl and not gcc
+    add_compile_options($<$<COMPILE_LANGUAGE:C>:-fdiagnostics-color=always>
+                        $<$<COMPILE_LANGUAGE:CXX>:-fdiagnostics-color=always>)
+  else()
+    add_compile_options(-fdiagnostics-color=always)
   endif()
-
-  # g++
-  if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-    # For some reason it doesn't say its supported, but it works...
-    # AddCXXFlagIfSupported(-fdiagnostics-color COMPILER_SUPPORTS_fdiagnostics-color)
-    message(STATUS "Ninja: Forcing -fdiagnostics-color=always")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fdiagnostics-color=always")
-  endif()
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND MSVC_VERSION GREATER 1900)
+  add_compile_options(/diagnostics:column)
+else()
+  message(STATUS "No colored compiler diagnostic set for '${CMAKE_CXX_COMPILER_ID}' compiler.")
 endif()
 
 # Xcode/Ninja generators undefined MAKE
-if(CMAKE_GENERATOR MATCHES "Make")
-  set(MAKE "$(MAKE)")
-else()
-  set(MAKE make)
-endif()
+#if(CMAKE_GENERATOR MATCHES "Make")
+#  set(MAKE "$(MAKE)")
+#else()
+#  set(MAKE make)
+#endif()
 
 ###############################################################################
 #                         C M A K E    C O N T R O L                          #
@@ -124,7 +123,7 @@ if(UNIX)
   endif()
 
   # Note: CMAKE_CXX_STANDARD set to 20 should already take care of adding -std=c++20 or equivalent
-  if(APPLE)
+  if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
   endif()
 endif()
@@ -188,10 +187,10 @@ message(STATUS "Conan: conan_cmake_configure")
 conan_cmake_configure(
   REQUIRES
   boost/1.79.0
-  fmt/8.1.1
-  benchmark/1.6.1
+  fmt/9.1.0
+  benchmark/1.7.0
   jsoncpp/1.9.5
-  gtest/1.11.0
+  gtest/1.12.1
   pugixml/1.12.1
   xerces-c/3.2.3
   tbb/2020.3
@@ -242,6 +241,9 @@ include_directories(${PROJECT_BINARY_DIR})
 # file( GLOB APP_SOURCES RELATIVE app/*.cxx )
 file(GLOB BENCH_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/bench*.cpp)
 
+
+include(CheckCXXSourceCompiles)
+
 foreach( bench_file ${BENCH_FILES} )
   string(REPLACE ".cpp" "" bench_name ${bench_file})
   message("bench_name=${bench_name}")
@@ -277,11 +279,41 @@ foreach( bench_file ${BENCH_FILES} )
       message("OpenMP not Found, skipping ${bench_name}")
     endif()
   elseif(bench_name MATCHES "bench_stl_parallel")
-    add_executable( ${bench_name} ${bench_file} )
-    target_link_libraries(${bench_name} PRIVATE
-      CONAN_PKG::benchmark
-      CONAN_PKG::tbb
-    )
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+      message("Skipping ${bench_name}")
+    else()
+      add_executable( ${bench_name} ${bench_file} )
+      target_link_libraries(${bench_name} PRIVATE
+        CONAN_PKG::benchmark
+        CONAN_PKG::onetbb
+      )
+    endif()
+  elseif(bench_name MATCHES "bench_string_trim")
+    check_cxx_source_compiles(
+    "
+#include <cmath>
+#include <ranges>
+
+#if __cplusplus < 201709L && !defined(_MSC_VER) && !defined(__INTEL_COMPILER)
+#  error \"insufficient support for C++20\"
+#endif
+
+#if !(defined __cpp_lib_ranges) || (__cpp_lib_ranges < 201911)
+#  error \"insufficient support for C++20\"
+#endif
+int main() { }"
+    HAVE_CXX20_RANGES)
+    if (HAVE_CXX20_RANGES)
+      message("Ranges are supported")
+      add_executable( ${bench_name} ${bench_file} )
+      target_link_libraries(${bench_name} PRIVATE
+        CONAN_PKG::benchmark
+        CONAN_PKG::boost
+      )
+    else()
+      message(AUTHOR_WARNING "Ranges are NOT supported, skipping ${bench_file}")
+    endif()
+
   else()
     add_executable( ${bench_name} ${bench_file} )
     target_link_libraries(${bench_name} PRIVATE
@@ -317,21 +349,21 @@ target_link_libraries(test_exe
   project_options
 )
 
-add_executable(xerces_test
-  test/TestFixture.hpp
-  test/TestFixture.cpp
-
-  test/TestXerces_GTest.cpp
-  test/DOMTreeErrorReporter.hpp
-  test/DOMTreeErrorReporter.cpp
-  )
-target_link_libraries(xerces_test
-  PUBLIC
-  CONAN_PKG::gtest
-  CONAN_PKG::xerces-c
-  PRIVATE
-  project_options
-)
+# add_executable(xerces_test
+#   test/TestFixture.hpp
+#   test/TestFixture.cpp
+#
+#   test/TestXerces_GTest.cpp
+#   test/DOMTreeErrorReporter.hpp
+#   test/DOMTreeErrorReporter.cpp
+#   )
+# target_link_libraries(xerces_test
+#   PUBLIC
+#   CONAN_PKG::gtest
+#   CONAN_PKG::xerces-c
+#   PRIVATE
+#   project_options
+# )
 enable_testing()
 
 include(GoogleTest)

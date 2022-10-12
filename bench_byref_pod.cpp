@@ -1,5 +1,6 @@
 #include <benchmark/benchmark.h>
 #include <string_view>
+#include <array>
 
 enum struct MyEnum
 {
