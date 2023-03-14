@@ -23,18 +23,9 @@ class BCLFileReference
   /// Constructor from file path.
   explicit BCLFileReference(const fs::path& measureRootDir, const fs::path& relativePath);
 
-  friend bool operator==(const BCLFileReference& lhs, const BCLFileReference& rhs) {
-    return lhs.m_path == rhs.m_path;
-  }
+  friend bool operator==(const BCLFileReference& lhs, const BCLFileReference& rhs);
 
-  friend auto operator<=>(const BCLFileReference& lhs, const BCLFileReference& rhs) {
-    if (lhs.m_path < rhs.m_path) {
-      return std::strong_ordering::less;
-    } else if (lhs.m_path == rhs.m_path) {
-      return std::strong_ordering::equal;
-    }
-    return std::strong_ordering::greater;
-  }
+  friend std::strong_ordering operator<=>(const BCLFileReference& lhs, const BCLFileReference& rhs);
 
   // friend std::strong_ordering operator<=>(const BCLFileReference& lhs, const BCLFileReference& rhs);
   /// Returns absolute path to file.
