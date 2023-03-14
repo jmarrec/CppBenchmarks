@@ -1,0 +1,72 @@
+#ifndef UTILITIES_BCL_BCLFILEREFERENCE_HPP
+#define UTILITIES_BCL_BCLFILEREFERENCE_HPP
+
+#include <boost/filesystem.hpp>
+#include <boost/optional.hpp>
+
+#include <compare>
+#include <string>
+
+namespace fs = boost::filesystem;
+
+namespace openstudio {
+
+/** BCLFileReference is a class for tracking files that come with BCL components and measures.
+  **/
+class BCLFileReference
+{
+
+ public:
+  /** @name Constructors */
+  //@{
+
+  /// Constructor from file path.
+  explicit BCLFileReference(const fs::path& measureRootDir, const fs::path& relativePath);
+
+  // friend bool operator<(const openstudio::BCLFileReference& lhs, const openstudio::BCLFileReference& rhs);
+
+  // bool operator<(const BCLFileReference& rhs) const {
+  //   return m_path < rhs.m_path;
+  // }
+
+  inline bool operator<(const openstudio::BCLFileReference& rhs) const {
+    return m_path < rhs.m_path;
+  }
+
+  inline bool operator==(const openstudio::BCLFileReference& rhs) const {
+    return m_path == rhs.m_path;
+  }
+
+  // friend auto operator<=>(const BCLFileReference& lhs, const BCLFileReference& rhs) = default;
+  friend auto operator<=>(const BCLFileReference& lhs, const BCLFileReference& rhs) {
+    if (lhs.m_path < rhs.m_path) {
+      return std::strong_ordering::less;
+    } else if (lhs.m_path == rhs.m_path) {
+      return std::strong_ordering::equal;
+    }
+    return std::strong_ordering::greater;
+  }
+
+  // friend std::strong_ordering operator<=>(const BCLFileReference& lhs, const BCLFileReference& rhs);
+  /// Returns absolute path to file.
+  fs::path path() const;
+
+  // Returns path to file, relative to measure root directory (including subdirectory, eg 'docs/subfolder/docs.rb')
+  fs::path relativePath() const;
+
+ private:
+  fs::path m_measureRootDir;
+  fs::path m_path;
+  std::string m_checksum;
+  std::string m_softwareProgram;
+  std::string m_softwareProgramVersion;
+  boost::optional<std::string> m_minCompatibleVersion;
+  boost::optional<std::string> m_maxCompatibleVersion;
+  std::string m_fileName;
+  std::string m_fileType;
+  std::string m_usageType;
+};
+
+}  // namespace openstudio
+
+#endif  // UTILITIES_BCL_BCLFILEREFERENCE_HPP

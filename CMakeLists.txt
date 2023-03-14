@@ -329,24 +329,31 @@ endforeach()
 add_library(testlib
   TestClass.hpp
   TestClass.cpp
+  BCLFileReference.hpp
+  BCLFileReference.cpp
 )
 
-target_link_libraries(testlib PRIVATE project_options)
+target_link_libraries(testlib
+  PRIVATE
+  project_options
+  CONAN_PKG::boost
+  CONAN_PKG::fmt
+)
 
 add_executable(test_exe
   test/TestFixture.hpp
   test/TestFixture.cpp
 
   test/TestClass_GTest.cpp
-)
-target_link_libraries(test_exe
-  PUBLIC
-  testlib
-  CONAN_PKG::gtest
+  test/Other_GTest.cpp
 )
 target_link_libraries(test_exe
   PRIVATE
+  CONAN_PKG::gtest
   project_options
+  testlib
+  CONAN_PKG::boost
+  CONAN_PKG::fmt
 )
 
 # add_executable(xerces_test
