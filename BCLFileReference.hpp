@@ -23,21 +23,10 @@ class BCLFileReference
   /// Constructor from file path.
   explicit BCLFileReference(const fs::path& measureRootDir, const fs::path& relativePath);
 
-  // friend bool operator<(const openstudio::BCLFileReference& lhs, const openstudio::BCLFileReference& rhs);
-
-  // bool operator<(const BCLFileReference& rhs) const {
-  //   return m_path < rhs.m_path;
-  // }
-
-  inline bool operator<(const openstudio::BCLFileReference& rhs) const {
-    return m_path < rhs.m_path;
+  friend bool operator==(const BCLFileReference& lhs, const BCLFileReference& rhs) {
+    return lhs.m_path == rhs.m_path;
   }
 
-  inline bool operator==(const openstudio::BCLFileReference& rhs) const {
-    return m_path == rhs.m_path;
-  }
-
-  // friend auto operator<=>(const BCLFileReference& lhs, const BCLFileReference& rhs) = default;
   friend auto operator<=>(const BCLFileReference& lhs, const BCLFileReference& rhs) {
     if (lhs.m_path < rhs.m_path) {
       return std::strong_ordering::less;
