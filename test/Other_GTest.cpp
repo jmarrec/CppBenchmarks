@@ -3,11 +3,12 @@
 
 #include "../BCLFileReference.hpp"
 
+#include <boost/filesystem.hpp>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
 #include <algorithm>
-#include <boost/filesystem.hpp>
+#include <set>
 #include <vector>
 
 namespace fs = boost::filesystem;
@@ -45,6 +46,24 @@ TEST_F(TestFixture, TestOther) {
   //          [](auto& lhs, auto& rhs) { return lhs.path() < rhs.path(); });
 
   std::sort(m_files.begin(), m_files.end());
+
+  for (auto& fileRef : m_files) {
+    fmt::print("{}\n", fileRef.path().generic_string());
+  }
+}
+
+TEST_F(TestFixture, TestSet) {
+
+  std::set<openstudio::BCLFileReference> m_files;
+  m_files.emplace(fs::path("measure1"), fs::path("docs/test.rb"));
+  m_files.emplace(fs::path("measure1"), fs::path("measure.xml"));
+  m_files.emplace(fs::path("measure1"), fs::path("measure.rb"));
+  m_files.emplace(fs::path("measure1"), fs::path("README.md.erb"));
+  m_files.emplace(fs::path("measure1"), fs::path("README.md"));
+  m_files.emplace(fs::path("measure1"), fs::path("resources/file.csv"));
+
+  // std::sort(m_files.begin(), m_files.end(),
+  //          [](auto& lhs, auto& rhs) { return lhs.path() < rhs.path(); });
 
   for (auto& fileRef : m_files) {
     fmt::print("{}\n", fileRef.path().generic_string());
