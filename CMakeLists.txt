@@ -325,7 +325,7 @@ int main() { }"
 
 endforeach()
 
-add_executable( test_regex test.cpp )
+add_executable( test_regex test_regex_replace.cpp )
 target_link_libraries(test_regex PRIVATE
   CONAN_PKG::boost
   CONAN_PKG::fmt
