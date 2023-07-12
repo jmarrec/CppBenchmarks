@@ -193,7 +193,7 @@ conan_cmake_configure(
   gtest/1.13.0
   pugixml/1.12.1
   xerces-c/3.2.3
-  tbb/2020.3
+  onetbb/2021.9.0
   GENERATORS ${CONAN_GENERATOR}
 )
 
