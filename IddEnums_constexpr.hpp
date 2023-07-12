@@ -1,6 +1,7 @@
 #ifndef UTILITIES_IDD_IDDENUMS_CONSTEXPR_HXX
 #define UTILITIES_IDD_IDDENUMS_CONSTEXPR_HXX
 
+#include <cctype>
 #include <compare>
 #include <iostream>
 #include <numeric>
@@ -13,6 +14,8 @@
 
 #include <fmt/format.h>
 
+namespace constexpr_enum {
+
 inline std::string ascii_to_lower_copy(std::string_view input) {
   std::string result{input};
   constexpr auto to_lower_diff = 'a' - 'A';
@@ -22,6 +25,14 @@ inline std::string ascii_to_lower_copy(std::string_view input) {
     }
   }
   return result;
+}
+
+constexpr char charToUpper(const char c) {
+  constexpr auto to_upper_diff = 'A' - 'a';
+  if (c >= 'a' && c <= 'z') {
+    return c + to_upper_diff;
+  }
+  return c;
 }
 
 inline std::string ascii_to_upper_copy(std::string_view input) {
@@ -52,7 +63,7 @@ class EnumBase
 
   /** Construct from t_value. Throws std::runtime_error if t_value does not
      * match a name or a description (case insensitive). */
-  EnumBase(std::string_view t_value) : m_value(lookupValue(t_value)) {}
+  constexpr EnumBase(std::string_view t_value) : m_value(lookupValue(t_value)) {}
 
   /** Returns the name associated with t_value, if it exists. Otherwise,
      * throws std::runtime_error. */
@@ -123,8 +134,32 @@ class EnumBase
 
   /** Returns the (integer) value associated with t_name, as determined by
      * case-insensitive comparison to the enumerated names and descriptions. */
-  static int lookupValue(std::string_view t_name) {
-    auto nameUC = ascii_to_upper_copy(t_name);  // TODO: make this constexpr
+  constexpr static int lookupValue(std::string_view t_name) {
+    // auto nameUC = ascii_to_upper_copy(t_name);  // TODO: make this constexpr
+
+    std::vector<char> arr{t_name.begin(), t_name.end()};
+    std::transform(arr.begin(), arr.end(), arr.begin(), charToUpper);
+    std::string_view nameUC{arr.data(), arr.size()};
+
+#if 0
+    auto predicate_caseinsensitive =
+      [&t_name](std::string_view nameUC) {
+        if (nameUC.size() != t_name.size()) {
+          return false;
+        }
+        constexpr auto to_upper_diff = 'A' - 'a';
+        for (size_t i = 0; i < t_name.size(); ++i) {
+          auto c = t_name[i];
+          if (c >= 'a' && c <= 'z') {
+            c += to_upper_diff;
+          }
+          if (c != nameUC[i]) {
+            return false;
+          }
+        }
+      }
+#endif
+
     auto itNames = std::find(Enum::namesUC.cbegin(), Enum::namesUC.cend(), nameUC);
     if (itNames != Enum::namesUC.cend()) {
       return std::distance(Enum::namesUC.cbegin(), itNames);
@@ -151,7 +186,7 @@ class EnumBase
   int m_value;
 };
 
-struct IddObjectType : public ::EnumBase<IddObjectType>
+struct IddObjectType : public EnumBase<IddObjectType>
 {
  public:
   using SizeType = int;  // Or uint16_t? This provides 65535 possible keys which is more than enough
@@ -160,7 +195,7 @@ struct IddObjectType : public ::EnumBase<IddObjectType>
   enum domain : SizeType;
 
   constexpr IddObjectType() : EnumBase<IddObjectType>(0) {}
-  IddObjectType(const std::string& t_name) : EnumBase<IddObjectType>(t_name) {}
+  constexpr IddObjectType(const std::string& t_name) : EnumBase<IddObjectType>(t_name) {}
   constexpr IddObjectType(int t_value) : EnumBase<IddObjectType>(t_value) {}
 
   static std::string_view enumName() {
@@ -200,5 +235,7 @@ enum IddObjectType::domain : IddObjectType::SizeType
   Version,
   CommentOnly,
 };
+
+}  // namespace constexpr_enum
 
 #endif  // UTILITIES_IDD_IDDENUMS_CONSTEXPR_HXX
