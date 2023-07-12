@@ -188,9 +188,9 @@ conan_cmake_configure(
   REQUIRES
   boost/1.79.0
   fmt/9.1.0
-  benchmark/1.7.0
+  benchmark/1.8.0
   jsoncpp/1.9.5
-  gtest/1.12.1
+  gtest/1.13.0
   pugixml/1.12.1
   xerces-c/3.2.3
   tbb/2020.3
