@@ -64,6 +64,33 @@ std::string trim2(std::string_view const in) {
   return {view.begin(), view.end()};
 }
 
+}  // namespace range
+
+static void BM_Trim_Ranges(benchmark::State& state) {
+  for (auto _ : state) {
+    std::string str = getTestString();
+    str = range::trim(str);
+    benchmark::DoNotOptimize(str);
+  }
+}
+
+static void BM_Trim_Ranges2(benchmark::State& state) {
+  for (auto _ : state) {
+    std::string str = getTestString();
+    str = range::trim2(str);
+    benchmark::DoNotOptimize(str);
+  }
+}
+
+// Register the function as a benchmark
+BENCHMARK(BM_Trim_Boost);
+BENCHMARK(BM_Trim_ASCII);
+BENCHMARK(BM_Trim_Ranges);
+BENCHMARK(BM_Trim_Ranges2);
+
+#if 0
+namespace range {
+
 template <std::ranges::view V, typename Pred>
 requires std::ranges::bidirectional_range<V>&& std::indirect_unary_predicate<Pred, std::ranges::iterator_t<V>> class drop_last_while_view
   : public std::ranges::view_interface<drop_last_while_view<V, Pred>>
@@ -93,17 +120,17 @@ requires std::ranges::bidirectional_range<V>&& std::indirect_unary_predicate<Pre
 
 namespace myviews {
 
-#ifdef __GNUC__
+#  ifdef __GNUC__
 using std::views::__adaptor::_RangeAdaptor;
 
 struct drop_last_while_fn : _RangeAdaptor<drop_last_while_fn>
 {
   using _RangeAdaptor<drop_last_while_fn>::operator();
   static constexpr int _S_arity = 2;
-#else
+#  else
 struct drop_last_while_fn
 {
-#endif
+#  endif
   template <std::ranges::viewable_range R, typename Pred>
   constexpr auto operator()(R&& r, Pred pred) const -> range::drop_last_while_view<std::views::all_t<R>, Pred> {
     return range::drop_last_while_view<std::views::all_t<R>, Pred>(std::views::all(std::forward<R>(r)), std::move(pred));
@@ -118,24 +145,7 @@ std::string trim3(std::string_view const in) {
   auto view = in | std::views::drop_while(isspace) | myviews::drop_last_while(isspace);
   return {view.begin(), view.end()};
 }
-
 }  // namespace range
-
-static void BM_Trim_Ranges(benchmark::State& state) {
-  for (auto _ : state) {
-    std::string str = getTestString();
-    str = range::trim(str);
-    benchmark::DoNotOptimize(str);
-  }
-}
-
-static void BM_Trim_Ranges2(benchmark::State& state) {
-  for (auto _ : state) {
-    std::string str = getTestString();
-    str = range::trim2(str);
-    benchmark::DoNotOptimize(str);
-  }
-}
 
 static void BM_Trim_Ranges3(benchmark::State& state) {
   for (auto _ : state) {
@@ -145,9 +155,5 @@ static void BM_Trim_Ranges3(benchmark::State& state) {
   }
 }
 
-// Register the function as a benchmark
-BENCHMARK(BM_Trim_Boost);
-BENCHMARK(BM_Trim_ASCII);
-BENCHMARK(BM_Trim_Ranges);
-BENCHMARK(BM_Trim_Ranges2);
 BENCHMARK(BM_Trim_Ranges3);
+#endif

@@ -193,7 +193,7 @@ conan_cmake_configure(
   gtest/1.13.0
   pugixml/1.12.1
   xerces-c/3.2.3
-  onetbb/2021.9.0
+  tbb/2020.3  # onetbb/2021.9.0 is incompatible with STL algorithms, the tbb::task is removed
   GENERATORS ${CONAN_GENERATOR}
 )
 
@@ -285,7 +285,7 @@ foreach( bench_file ${BENCH_FILES} )
       add_executable( ${bench_name} ${bench_file} )
       target_link_libraries(${bench_name} PRIVATE
         CONAN_PKG::benchmark
-        CONAN_PKG::onetbb
+        CONAN_PKG::tbb
       )
     endif()
   elseif(bench_name MATCHES "bench_string_trim")
@@ -324,6 +324,12 @@ int main() { }"
   endif()
 
 endforeach()
+
+add_executable( test_regex test.cpp )
+target_link_libraries(test_regex PRIVATE
+  CONAN_PKG::boost
+  CONAN_PKG::fmt
+)
 
 
 add_library(testlib
