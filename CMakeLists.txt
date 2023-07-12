@@ -194,6 +194,7 @@ conan_cmake_configure(
   pugixml/1.12.1
   xerces-c/3.2.3
   tbb/2020.3  # onetbb/2021.9.0 is incompatible with STL algorithms, the tbb::task is removed
+  frozen/1.1.1
   GENERATORS ${CONAN_GENERATOR}
 )
 
@@ -313,6 +314,16 @@ int main() { }"
     else()
       message(AUTHOR_WARNING "Ranges are NOT supported, skipping ${bench_file}")
     endif()
+
+  elseif (bench_name MATCHES "EnumMap")
+    add_executable( ${bench_name} ${bench_file} )
+    message(STATUS "${bench_name} matches EnumMap")
+    target_link_libraries(${bench_name} PRIVATE
+      CONAN_PKG::benchmark
+      CONAN_PKG::boost
+      CONAN_PKG::fmt
+      CONAN_PKG::frozen
+    )
 
   else()
     add_executable( ${bench_name} ${bench_file} )
