@@ -14,7 +14,7 @@
 #include <boost/thread.hpp>
 
 constexpr auto getIddExample() {
-    return R"(!IDD_Version 3.2.0
+  return R"(!IDD_Version 3.2.0
 ! *****************************************************************************
 ! HEADER. BLABLABLA
 ! **************************************************************************
@@ -106,40 +106,40 @@ inline void ascii_trim(std::string& str) {
 }  // namespace openstudio
 
 namespace iddRegex {
-  const boost::regex& commentOnlyLine() {
-    static const boost::regex result("^[\\s\\t]*[!](.*)");
-    return result;
-  }
-
-  /// Match group identifier
-  /// matches[1], group name
-  const boost::regex& group() {
-    static const boost::regex result("^[\\\\][gG]roup[\\s\\t]*(.*)");
-    return result;
-  }
-
-  const boost::regex& line() {
-    static const boost::regex result("^([^!]*?)[,;](.*)");
-    return result;
-  }
-
-  /// Match the closing field in an idd object
-  /// matches[1], all previous text
-  /// matches[2], the last field
-  const boost::regex& closingField() {
-    static const boost::regex result("(.*)([AN][0-9]+[\\s\\t]*[;].*?)$");
-    return result;
-  }
-
-  /// Match a field or object level comment
-  /// matches[1], after '\' until next '\'
-  /// matches[2], after second '\' (may be empty)
-  const boost::regex& metaDataComment() {
-    static const boost::regex result("^[\\s\\t]*?[\\\\]([^\\\\]*)(.*)");
-    return result;
-  }
-
+const boost::regex& commentOnlyLine() {
+  static const boost::regex result("^[\\s\\t]*[!](.*)");
+  return result;
 }
+
+/// Match group identifier
+/// matches[1], group name
+const boost::regex& group() {
+  static const boost::regex result("^[\\\\][gG]roup[\\s\\t]*(.*)");
+  return result;
+}
+
+const boost::regex& line() {
+  static const boost::regex result("^([^!]*?)[,;](.*)");
+  return result;
+}
+
+/// Match the closing field in an idd object
+/// matches[1], all previous text
+/// matches[2], the last field
+const boost::regex& closingField() {
+  static const boost::regex result("(.*)([AN][0-9]+[\\s\\t]*[;].*?)$");
+  return result;
+}
+
+/// Match a field or object level comment
+/// matches[1], after '\' until next '\'
+/// matches[2], after second '\' (may be empty)
+const boost::regex& metaDataComment() {
+  static const boost::regex result("^[\\s\\t]*?[\\\\]([^\\\\]*)(.*)");
+  return result;
+}
+
+}  // namespace iddRegex
 
 static void BM_Trim_Boost(benchmark::State& state) {
   for (auto _ : state) {
@@ -165,7 +165,6 @@ static void BM_Trim_ASCII(benchmark::State& state) {
 BENCHMARK(BM_Trim_Boost);
 BENCHMARK(BM_Trim_ASCII);
 
-
 void parseOld(std::istream& is) {
 
   std::string line;
@@ -173,9 +172,9 @@ void parseOld(std::istream& is) {
   // this will contain matches to regular expressions
   boost::smatch matches;
 
-  int nCommentOnlys = 0;
-  int nGroups = 0;
-  int nObjects = 0;
+  [[maybe_unused]] int nCommentOnlys = 0;
+  [[maybe_unused]] int nGroups = 0;
+  [[maybe_unused]] int nObjects = 0;
 
   [[maybe_unused]] bool headerClosed = false;
   std::string objectName;
@@ -203,7 +202,6 @@ void parseOld(std::istream& is) {
 
     //int beginLineNum(lineNum);
     bool foundClosingLine(false);
-
 
     if (boost::regex_search(line, matches, iddRegex::line())) {
       objectName = std::string(matches[1].first, matches[1].second);
@@ -240,7 +238,6 @@ void parseOld(std::istream& is) {
   BOOST_ASSERT(nCommentOnlys == 5);
   BOOST_ASSERT(nGroups == 2);
   BOOST_ASSERT(nObjects == 3);
-
 }
 
 void parseNew(std::istream& is) {
@@ -249,9 +246,9 @@ void parseNew(std::istream& is) {
   // this will contain matches to regular expressions
   boost::smatch matches;
 
-  int nCommentOnlys = 0;
-  int nGroups = 0;
-  int nObjects = 0;
+  [[maybe_unused]] int nCommentOnlys = 0;
+  [[maybe_unused]] int nGroups = 0;
+  [[maybe_unused]] int nObjects = 0;
 
   [[maybe_unused]] bool headerClosed = false;
   std::string objectName;
@@ -313,9 +310,9 @@ void parseNew(std::istream& is) {
 
         // check if we have found the last field
         int pos = 0;
-        for (auto& c: line) {
+        for (auto& c : line) {
           if (pos == 0) {
-            if ( !((c == 'A') || (c == 'N')) ) {
+            if (!((c == 'A') || (c == 'N'))) {
               break;
             }
           } else {
@@ -333,8 +330,7 @@ void parseNew(std::istream& is) {
   BOOST_ASSERT(nCommentOnlys == 5);
   BOOST_ASSERT(nGroups == 2);
   BOOST_ASSERT(nObjects == 3);
-  }
-
+}
 
 static void BM_CommentOnly_Current(benchmark::State& state) {
   for (auto _ : state) {
@@ -342,9 +338,6 @@ static void BM_CommentOnly_Current(benchmark::State& state) {
     parseOld(is);
   }
 }
-
-
-
 
 static void BM_CommentOnly_New(benchmark::State& state) {
   for (auto _ : state) {

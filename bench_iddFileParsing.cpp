@@ -369,7 +369,7 @@ void IddFile_Impl::parseNewWithPreScan(std::istream& is) {
   int lineNum = 0;
 
   // number of object in the idd, 1 is first object
-  int objectNum = 0;
+  [[maybe_unused]] int objectNum = 0;
 
   // stream for header
   std::stringstream header;
@@ -495,7 +495,7 @@ void IddFile_Impl::parse(std::istream& is) {
   int lineNum = 0;
 
   // number of object in the idd, 1 is first object
-  int objectNum = 0;
+  [[maybe_unused]] int objectNum = 0;
 
   // stream for header
   std::stringstream header;
@@ -658,7 +658,7 @@ void IddFile_Impl::parseNew2(std::istream& is) {
   int lineNum = 0;
 
   // number of object in the idd, 1 is first object
-  int objectNum = 0;
+  [[maybe_unused]] int objectNum = 0;
 
   // stream for header
   std::stringstream header;
