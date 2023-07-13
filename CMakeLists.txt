@@ -195,6 +195,7 @@ conan_cmake_configure(
   xerces-c/3.2.3
   tbb/2020.3  # onetbb/2021.9.0 is incompatible with STL algorithms, the tbb::task is removed
   frozen/1.1.1
+  magic_enum/0.9.2
   GENERATORS ${CONAN_GENERATOR}
 )
 
@@ -342,6 +343,16 @@ target_link_libraries(test_regex PRIVATE
   CONAN_PKG::fmt
 )
 
+add_executable(IddEnums_constexpr_test IddEnums_constexpr_test.cpp)
+target_link_libraries(IddEnums_constexpr_test PRIVATE
+  CONAN_PKG::boost
+  CONAN_PKG::fmt
+  CONAN_PKG::frozen
+)
+target_compile_options(IddEnums_constexpr_test PRIVATE
+  $<$<CXX_COMPILER_ID:GNU>:-fconstexpr-ops-limit=90000000>
+  $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-fconstexpr-steps=90000000>
+)
 
 add_library(testlib
   TestClass.hpp

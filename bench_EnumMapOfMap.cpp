@@ -60,7 +60,9 @@ struct IddObjectTypeHash
 struct IddObjectTypeHashConstexpr
 {
   constexpr std::size_t operator()(constexpr_enum::IddObjectType const& iddObjectType) const noexcept {
-    return std::hash<int>{}(iddObjectType.value());
+    // Gcc 10 and 11: this isn't constexpr
+    // return std::hash<int>{}(iddObjectType.value());
+    return static_cast<size_t>(iddObjectType.value());
   }
 };
 
