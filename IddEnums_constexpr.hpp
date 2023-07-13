@@ -1,6 +1,7 @@
 #ifndef UTILITIES_IDD_IDDENUMS_CONSTEXPR_HXX
 #define UTILITIES_IDD_IDDENUMS_CONSTEXPR_HXX
 
+#include <algorithm>
 #include <cctype>
 #include <compare>
 #include <iostream>
@@ -137,7 +138,14 @@ class EnumBase
   constexpr static int lookupValue(std::string_view t_name) {
     // auto nameUC = ascii_to_upper_copy(t_name);  // TODO: make this constexpr
 
-    std::array<char, 80> arr{};  // vector<char> works on recent clang, not on GCC 10
+    constexpr size_t max_size = []() -> std::size_t {
+      auto size_predicate = [](const auto& lhs, const auto& rhs) { return lhs.size() < rhs.size(); };
+      auto it = std::max_element(Enum::namesUC.cbegin(), Enum::namesUC.cend(), size_predicate);
+      auto it2 = std::max_element(Enum::descriptionsUC.cbegin(), Enum::descriptionsUC.cend(), size_predicate);
+      return std::max(it->size(), it2->size());
+    }() + 1;
+
+    std::array<char, max_size> arr{};  // vector<char> works on recent clang, not on GCC 10
     std::transform(t_name.begin(), t_name.end(), arr.begin(), charToUpper);
     std::string_view nameUC{arr.data()};
 
