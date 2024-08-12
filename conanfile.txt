@@ -1,0 +1,15 @@
+[requires]
+boost/1.79.0
+fmt/9.1.0
+jsoncpp/1.9.5
+pugixml/1.12.1
+xerces-c/3.2.5
+# tbb/2020.3  # onetbb/2021.9.0 is incompatible with STL algorithms, the tbb::task is removed
+frozen/1.1.1
+magic_enum/0.9.5
+benchmark/1.8.3
+gtest/1.14.0
+
+[generators]
+CMakeToolchain
+CMakeDeps

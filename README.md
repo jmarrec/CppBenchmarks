@@ -14,12 +14,34 @@ One executable will be made for each cpp file that starts with `bench`: `bench_<
 
 As usual, you can pass options to the executable:
 
+
+Using **conan >= 2.0**:
+
+Install conan dependencies and create toolchain file.
+
 ```shell
-mkdir build/
+conan install . --output-folder=./build --build=missing -c tools.cmake.cmaketoolchain:generator=Ninja -s compiler.cppstd=20 -s build_type=Release
+```
+
+Build using conan-presets
+
+```shell
+cmake --preset conan-release
+cmake --build --preset conan-release
+```
+
+Alternatively, build explicitly.
+
+```
 cd build/
-cmake -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON ../
-cd ../ && ln -s build/compile_commands.json . && cd build/
+. ./conanbuild.sh
+cmake -G Ninja -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON ../
 ninja
+```
+
+Usage:
+
+```
 ./Products/bench_basics --benchmark_out=results.csv --benchmark_out_format=csv
 
 ./Products/bench_basics --help

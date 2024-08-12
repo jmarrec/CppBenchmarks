@@ -6,11 +6,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Do not enable compiler specific extensions, for eg on GCC use -std=c++1z (=c++17) and not -std=gnu++17
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Use ccache is available, has to be before "project()"
-find_program(CCACHE_PROGRAM ccache)
+# Use ccache if available, has to be before "project()"
+find_program(CCACHE_PROGRAM NAMES ccache sccache)
 if(CCACHE_PROGRAM)
-  # Support Unix Makefiles and Ninja
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
+  # Support: Unix Makefiles and Ninja only
+  # RULE_LAUNCH_COMPILE is an internal variable and makes RC compilation fail on windows, hence why we use the C/CXX COMPILER_LAUNCHER instead
+  message(STATUS "${CCACHE_PROGRAM} found and enabled")
+  set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE_PROGRAM} CACHE FILEPATH "CXX compiler cache used")
+  set(CMAKE_C_COMPILER_LAUNCHER ${CCACHE_PROGRAM} CACHE FILEPATH "C compiler cache used")
 endif()
 
 project(CppBench VERSION 0.0.1)
@@ -132,106 +135,21 @@ endif()
 #                              C O N A N                              #
 #######################################################################
 
-set(CMAKE_CONAN_EXPECTED_HASH
-    5cdb3042632da3efff558924eecefd580a0e786863a857ca097c3d1d43df5dcd)
-set(CMAKE_CONAN_VERSION "0.18.1")
-
-if(EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
-  file(SHA256 "${CMAKE_BINARY_DIR}/conan.cmake" CMAKE_CONAN_HASH)
-elseif(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake"
-       OR NOT "${CMAKE_CONAN_HASH}" MATCHES "${CMAKE_CONAN_EXPECTED_HASH}")
-  # Put it in CMAKE_BINARY_DIR so we don't end up with two when building OpenStudioApplication
-  message(
-    STATUS
-      "Downloading conan.cmake ${CMAKE_CONAN_VERSION} from https://github.com/conan-io/cmake-conan"
-  )
-  file(
-    DOWNLOAD
-    "https://raw.githubusercontent.com/conan-io/cmake-conan/${CMAKE_CONAN_VERSION}/conan.cmake"
-    "${CMAKE_BINARY_DIR}/conan.cmake"
-    EXPECTED_HASH SHA256=${CMAKE_CONAN_EXPECTED_HASH}
-    TLS_VERIFY ON)
-else()
-  message(STATUS "Using existing conan.cmake")
-endif()
-
-include(${CMAKE_BINARY_DIR}/conan.cmake)
-
-conan_check(VERSION 1.48.0 REQUIRED)
-
-message(STATUS "RUNNING CONAN")
-
-conan_add_remote(NAME bincrafters
-  URL https://bincrafters.jfrog.io/artifactory/api/conan/public-conan)
-
-list(APPEND CONAN_BUILD "missing")
-
-if(CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
-  set(CONAN_CMAKE_MULTI ON)
-  if (NOT CONAN_CONFIGURATION_TYPES)
-    # Cache it, and let user change it (if they want to pull RelWithDebInfo for eg)
-    set(CONAN_CONFIGURATION_TYPES "Release;Debug" CACHE STRING "List of configurations for which you want to fetch conan packages")
-    mark_as_advanced(CONAN_CONFIGURATION_TYPES)
-  endif()
-  message(STATUS "Conan: Using cmake_multi generator")
-  set(CONAN_GENERATOR "cmake_multi")
-else()
-  message(STATUS "Conan: Using cmake generator")
-  set(CONAN_CMAKE_MULTI OFF)
-  set(CONAN_GENERATOR "cmake")
-  set(CONAN_CONFIGURATION_TYPES ${CMAKE_BUILD_TYPE})
-endif()
-
-message(STATUS "Conan: conan_cmake_configure")
-# This will create the conanfile.txt
-conan_cmake_configure(
-  REQUIRES
-  boost/1.79.0
-  fmt/9.1.0
-  benchmark/1.8.0
-  jsoncpp/1.9.5
-  gtest/1.13.0
-  pugixml/1.12.1
-  xerces-c/3.2.3
-  tbb/2020.3  # onetbb/2021.9.0 is incompatible with STL algorithms, the tbb::task is removed
-  frozen/1.1.1
-  magic_enum/0.9.2
-  GENERATORS ${CONAN_GENERATOR}
-)
-
-foreach(build_type ${CONAN_CONFIGURATION_TYPES})
-  conan_cmake_autodetect(settings BUILD_TYPE ${build_type})
-  message(STATUS "Conan: Autodetected settings for build type ${build_type}: ${settings}")
-
-  # Avoid polluting with cppstd which prevents downloading some existing binary packages (like boost)
-  # Former deprecated conan_cmake_run was NOT adding compiler.cppstd
-  foreach(ARG ${settings})
-    if(${ARG} MATCHES "compiler.cppstd=(.*)")
-      message("Removing ${ARG}")
-      list(REMOVE_ITEM settings ${ARG})
-    endif()
-  endforeach()
-
-  conan_cmake_install(PATH_OR_REFERENCE .
-    BUILD ${CONAN_BUILD}
-    OPTIONS ${CONAN_OPTIONS}
-    SETTINGS ${settings}
-    ${CONAN_UPDATE}
-  )
-endforeach()
-
-# Loads the conanbuildinfo.cmake / conanbuildinfo_multi.cmake
-conan_load_buildinfo()
-# conan_basic_setup in the conanbuildinfo.cmake. TARGETS => set cmake targets, NO_OUTPUT_DIRS => Don't modify the BIN / LIB folders etc
-conan_basic_setup(TARGETS NO_OUTPUT_DIRS)
-
-message("CONAN_LIBS=${CONAN_LIBS}")
-
 # Search first in the binary dir, where conan will install finders, then
 # search for modules in the root dir to override cmake ones
 # Start with ROOT, then PROJECT_BINARY_DIR
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_BINARY_DIR}" "${PROJECT_SOURCE_DIR}/CMake")
 include_directories("${CMAKE_CURRENT_BINARY_DIR}")
+
+find_package(Boost)
+find_package(fmt)
+find_package(jsoncpp)
+find_package(pugixml)
+find_package(XercesC)
+find_package(frozen)
+find_package(magic_enum)
+find_package(benchmark)
+find_package(GTest)
 
 ###############################################################################
 #                              E X E C U T A B L E                            #
@@ -254,16 +172,16 @@ foreach( bench_file ${BENCH_FILES} )
     add_executable( ${bench_name} ${bench_file} )
     message(STATUS "${bench_name} matches json")
     target_link_libraries(${bench_name} PRIVATE
-      CONAN_PKG::benchmark
-      CONAN_PKG::jsoncpp
+      benchmark::benchmark_main
+      JsonCpp::JsonCpp
     )
 
   elseif (bench_name MATCHES "pugixml")
     add_executable( ${bench_name} ${bench_file} )
     message(STATUS "${bench_name} matches pugixml")
     target_link_libraries(${bench_name} PRIVATE
-      CONAN_PKG::benchmark
-      CONAN_PKG::pugixml
+      benchmark::benchmark_main
+      pugixml::pugixml
     )
 
   elseif(bench_name MATCHES "OpenMP")
@@ -273,7 +191,7 @@ foreach( bench_file ${BENCH_FILES} )
       message("Found OpenMP!")
       add_executable( ${bench_name} ${bench_file} )
       target_link_libraries(${bench_name} PRIVATE
-        CONAN_PKG::benchmark
+        benchmark::benchmark_main
       )
       target_link_libraries(${bench_name} INTERFACE Threads::Threads)
       target_link_libraries(${bench_name} PRIVATE OpenMP::OpenMP_CXX)
@@ -281,15 +199,16 @@ foreach( bench_file ${BENCH_FILES} )
       message("OpenMP not Found, skipping ${bench_name}")
     endif()
   elseif(bench_name MATCHES "bench_stl_parallel")
-    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-      message("Skipping ${bench_name}")
-    else()
-      add_executable( ${bench_name} ${bench_file} )
-      target_link_libraries(${bench_name} PRIVATE
-        CONAN_PKG::benchmark
-        CONAN_PKG::tbb
-      )
-    endif()
+    message("Skipping ${bench_name}")
+    # if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    #   message("Skipping ${bench_name}")
+    # else()
+    #   add_executable( ${bench_name} ${bench_file} )
+    #   target_link_libraries(${bench_name} PRIVATE
+    #     benchmark::benchmark_main
+    #     tbb::tbb
+    #   )
+    # endif()
   elseif(bench_name MATCHES "bench_string_trim")
     check_cxx_source_compiles(
     "
@@ -309,8 +228,8 @@ int main() { }"
       message("Ranges are supported")
       add_executable( ${bench_name} ${bench_file} )
       target_link_libraries(${bench_name} PRIVATE
-        CONAN_PKG::benchmark
-        CONAN_PKG::boost
+        benchmark::benchmark_main
+        boost::boost
       )
     else()
       message(AUTHOR_WARNING "Ranges are NOT supported, skipping ${bench_file}")
@@ -320,18 +239,18 @@ int main() { }"
     add_executable( ${bench_name} ${bench_file} )
     message(STATUS "${bench_name} matches EnumMap")
     target_link_libraries(${bench_name} PRIVATE
-      CONAN_PKG::benchmark
-      CONAN_PKG::boost
-      CONAN_PKG::fmt
-      CONAN_PKG::frozen
+      benchmark::benchmark_main
+      boost::boost
+      fmt::fmt
+      frozen::frozen
     )
 
   else()
     add_executable( ${bench_name} ${bench_file} )
     target_link_libraries(${bench_name} PRIVATE
-      CONAN_PKG::benchmark
-      CONAN_PKG::boost
-      CONAN_PKG::fmt
+      benchmark::benchmark_main
+      boost::boost
+      fmt::fmt
     )
   endif()
 
@@ -339,15 +258,15 @@ endforeach()
 
 add_executable( test_regex test_regex_replace.cpp )
 target_link_libraries(test_regex PRIVATE
-  CONAN_PKG::boost
-  CONAN_PKG::fmt
+  boost::boost
+  fmt::fmt
 )
 
 add_executable(IddEnums_constexpr_test IddEnums_constexpr_test.cpp)
 target_link_libraries(IddEnums_constexpr_test PRIVATE
-  CONAN_PKG::boost
-  CONAN_PKG::fmt
-  CONAN_PKG::frozen
+  boost::boost
+  fmt::fmt
+  frozen::frozen
 )
 target_compile_options(IddEnums_constexpr_test PRIVATE
   $<$<CXX_COMPILER_ID:GNU>:-fconstexpr-ops-limit=90000000>
@@ -364,8 +283,8 @@ add_library(testlib
 target_link_libraries(testlib
   PRIVATE
   project_options
-  CONAN_PKG::boost
-  CONAN_PKG::fmt
+  boost::boost
+  fmt::fmt
 )
 
 add_executable(test_exe
@@ -377,11 +296,11 @@ add_executable(test_exe
 )
 target_link_libraries(test_exe
   PRIVATE
-  CONAN_PKG::gtest
+  gtest::gtest
   project_options
   testlib
-  CONAN_PKG::boost
-  CONAN_PKG::fmt
+  boost::boost
+  fmt::fmt
 )
 
 # add_executable(xerces_test
@@ -394,8 +313,8 @@ target_link_libraries(test_exe
 #   )
 # target_link_libraries(xerces_test
 #   PUBLIC
-#   CONAN_PKG::gtest
-#   CONAN_PKG::xerces-c
+#   gtest::gtest
+#   XercesC::XercesC
 #   PRIVATE
 #   project_options
 # )
