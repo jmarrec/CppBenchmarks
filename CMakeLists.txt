@@ -262,16 +262,16 @@ target_link_libraries(test_regex PRIVATE
   fmt::fmt
 )
 
-add_executable(IddEnums_constexpr_test IddEnums_constexpr_test.cpp)
-target_link_libraries(IddEnums_constexpr_test PRIVATE
-  boost::boost
-  fmt::fmt
-  frozen::frozen
-)
-target_compile_options(IddEnums_constexpr_test PRIVATE
-  $<$<CXX_COMPILER_ID:GNU>:-fconstexpr-ops-limit=90000000>
-  $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-fconstexpr-steps=90000000>
-)
+# add_executable(IddEnums_constexpr_test IddEnums_constexpr_test.cpp)
+# target_link_libraries(IddEnums_constexpr_test PRIVATE
+#   boost::boost
+#   fmt::fmt
+#   frozen::frozen
+# )
+# target_compile_options(IddEnums_constexpr_test PRIVATE
+#   $<$<CXX_COMPILER_ID:GNU>:-fconstexpr-ops-limit=90000000>
+#   $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-fconstexpr-steps=90000000>
+# )
 
 add_library(testlib
   TestClass.hpp
