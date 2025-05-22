@@ -5,14 +5,15 @@
 
 static constexpr int N_ITER = 1'000'000;
 
-void PreDefTableEntry(int x) {
+int PreDefTableEntry(int x) {
   [[maybe_unused]] int ret = x * x;
+  return ret;
 }
 
 int func(int base, int x) {
   auto ret = base + x;
   if (ret % 2 == 0) {
-    PreDefTableEntry(ret);
+    ret += PreDefTableEntry(ret);
   }
   return ret;
 }
@@ -35,7 +36,7 @@ static void BM_Lambda(benchmark::State& state) {
   auto doStuff = [&base](int x) {
     auto ret = base + x;
     if (ret % 2 == 0) {
-      PreDefTableEntry(ret);
+      ret += PreDefTableEntry(ret);
     }
     return ret;
   };
