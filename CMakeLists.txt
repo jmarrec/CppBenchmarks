@@ -150,6 +150,7 @@ find_package(frozen)
 find_package(magic_enum)
 find_package(benchmark)
 find_package(GTest)
+find_package(ctre)
 
 ###############################################################################
 #                              E X E C U T A B L E                            #
@@ -245,6 +246,19 @@ int main() { }"
       frozen::frozen
     )
 
+  elseif (bench_name MATCHES "regex_replace")
+    add_executable( ${bench_name} ${bench_file} )
+    message(STATUS "${bench_name} matches regex_replace")
+    target_link_libraries(${bench_name} PRIVATE
+      benchmark::benchmark_main
+      boost::boost
+      ctre::ctre
+    )
+    set_target_properties(${bench_name} PROPERTIES
+      CXX_STANDARD 23
+      CXX_STANDARD_REQUIRED ON
+      CXX_EXTENSIONS OFF
+    )
   else()
     add_executable( ${bench_name} ${bench_file} )
     target_link_libraries(${bench_name} PRIVATE
