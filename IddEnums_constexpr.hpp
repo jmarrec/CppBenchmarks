@@ -89,7 +89,7 @@ class EnumBase
   }
 
   /** Returns this instance's current value (as an integer). */
-  constexpr int value() const {
+  constexpr int integer_value() const {
     return m_value;
   }
 
@@ -111,7 +111,9 @@ class EnumBase
   }
 
 #if 1
+  // clang-format off
   constexpr auto operator<=>(const EnumBase<Enum>&) const = default;
+  // clang-format on
 #else
   constexpr bool operator==(const EnumBase<Enum>& other) const {
     return (m_value == other.m_value);
@@ -185,8 +187,12 @@ class EnumBase
   static constexpr int lookupValue(int t_value) {
     if (t_value < Enum::Size) {
       return t_value;
+    }
+    if (!std::is_constant_evaluated()) {
+      throw std::runtime_error(fmt::format("Unknown OpenStudio Enum Value '{}' for Enum {}", t_value, Enum::enumName()));
     } else {
-      throw std::runtime_error(fmt::format("Unknown OpenStudio Enum Value = {} for Enum {}", t_value, Enum::enumName()));
+      // Or return -1 ?
+      throw std::invalid_argument("Unknown OpenStudio Enum Value");
     }
   }
 
@@ -206,12 +212,12 @@ struct IddObjectType : public EnumBase<IddObjectType>
   constexpr IddObjectType(std::string_view t_name) : EnumBase<IddObjectType>(t_name) {}
   constexpr IddObjectType(int t_value) : EnumBase<IddObjectType>(t_value) {}
 
-  static std::string_view enumName() {
+  static constexpr std::string_view enumName() {
     return "IddObjectType";
   }
 
   constexpr domain value() const {
-    return static_cast<domain>(EnumBase<IddObjectType>::value());
+    return static_cast<domain>(EnumBase<IddObjectType>::integer_value());
   }
 
  protected:
