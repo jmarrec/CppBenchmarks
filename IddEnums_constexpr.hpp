@@ -111,9 +111,7 @@ class EnumBase
   }
 
 #if 1
-  // clang-format off
   constexpr auto operator<=>(const EnumBase<Enum>&) const = default;
-  // clang-format on
 #else
   constexpr bool operator==(const EnumBase<Enum>& other) const {
     return (m_value == other.m_value);

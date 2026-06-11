@@ -23,16 +23,16 @@ class BCLFileReference
   /// Constructor from file path.
   explicit BCLFileReference(const fs::path& measureRootDir, const fs::path& relativePath);
 
-  friend bool operator==(const BCLFileReference& lhs, const BCLFileReference& rhs);
-
-  friend std::strong_ordering operator<=>(const BCLFileReference& lhs, const BCLFileReference& rhs);
-
   // friend std::strong_ordering operator<=>(const BCLFileReference& lhs, const BCLFileReference& rhs);
   /// Returns absolute path to file.
   fs::path path() const;
 
   // Returns path to file, relative to measure root directory (including subdirectory, eg 'docs/subfolder/docs.rb')
   fs::path relativePath() const;
+
+ protected:
+  friend bool operator==(const BCLFileReference& lhs, const BCLFileReference& rhs);
+  friend std::strong_ordering operator<=>(const BCLFileReference& lhs, const BCLFileReference& rhs);
 
  private:
   fs::path m_measureRootDir;
