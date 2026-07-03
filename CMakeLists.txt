@@ -196,6 +196,11 @@ foreach( bench_file ${BENCH_FILES} )
       )
       target_link_libraries(${bench_name} INTERFACE Threads::Threads)
       target_link_libraries(${bench_name} PRIVATE OpenMP::OpenMP_CXX)
+      # Without these, GCC vectorizes the `omp simd` loops at 128 bits and calls
+      # the SSE simd clone of `declare simd` functions, whose double variant
+      # (_ZGVbN2) is unvectorized scalar code with stack spills — slower than
+      # the plain loop. Prefer 256-bit so the AVX2 clone (_ZGVdN4) is used.
+      target_compile_options(${bench_name} PRIVATE -march=native -mprefer-vector-width=256) # -fopt-info-vec-missed)
     else()
       message("OpenMP not Found, skipping ${bench_name}")
     endif()
