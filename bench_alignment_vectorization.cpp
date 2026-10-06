@@ -10,14 +10,22 @@
 //   - std::vector<double> (default allocator)
 //   - std::vector<double, AlignedAllocator<64>> (like OBJEXXFCL_ALIGN=64, the x86 cache line)
 //   - std::vector<double, AlignedAllocator<128>> (Apple Silicon cache line)
-//   - a 64-byte aligned buffer viewed from its second element (data + 8 bytes): deliberately misaligned, worst case
+//   - a 128-byte aligned buffer viewed from +8, +16 or +32 bytes (Offset8 / Offset16 / Offset32), whatever the allocator:
+//       Offset8:  not even aligned to a 16-byte NEON/SSE vector (worst case)
+//       Offset16: what glibc and MSVC actually give std::vector<double> (16 bytes), ie the realistic post-migration case
+//       Offset32: aligned for 32-byte AVX2 vectors, but not to a 64-byte cache line
+// "Default" is whatever the platform allocator returns: on macOS, allocations >= ~32 KiB are page-aligned and small ones
+// only 16-byte aligned (but sometimes better by luck), hence the explicit OffsetN layouts and the per-buffer
+// *_offset_mod_128 counters, which report what each buffer actually got.
 // Kernels take a std::span<double>, so the compiler cannot know the alignment, like EnergyPlus going through
 // Array::operator(). The "AssumeAligned64" variants use std::assume_aligned<64> to show what an explicit hint gives.
 //
 // This file is built twice by CMakeLists.txt:
 //   bench_alignment_vectorization        : EnergyPlus-like default flags (-O3 -ffp-contract=off)
 //   bench_alignment_vectorization_native : -march=native / -mcpu=native -ffast-math -fno-finite-math-only (like #11816)
-// Sizes: 1 KiB-ish (L1), 256 KiB (L2), 32 MiB (memory bound).
+// Sizes are deliberately not powers of two, and mostly small like real EnergyPlus arrays (per zone, per surface...):
+// powers of two would hide vector-loop tails and cause cache set aliasing between buffers.
+//   37, 251, 1003 doubles (L1), 30011 (L2), 4000037 (~32 MB, memory bound)
 
 #include <benchmark/benchmark.h>
 
@@ -64,7 +72,9 @@ enum class Layout
   Default,
   Aligned64,
   Aligned128,
-  Misaligned8,  // 64-byte aligned buffer, viewed from its second element
+  Offset8,   // 128-byte aligned buffer, viewed from +8 bytes
+  Offset16,  // 128-byte aligned buffer, viewed from +16 bytes
+  Offset32,  // 128-byte aligned buffer, viewed from +32 bytes
 };
 
 class Buffer
@@ -84,9 +94,17 @@ class Buffer
         m_a128.resize(n);
         m_span = std::span<double>(m_a128);
         break;
-      case Layout::Misaligned8:
-        m_a64.resize(n + 1);
-        m_span = std::span<double>(m_a64.data() + 1, n);
+      case Layout::Offset8:
+        m_a128.resize(n + 1);
+        m_span = std::span<double>(m_a128.data() + 1, n);
+        break;
+      case Layout::Offset16:
+        m_a128.resize(n + 2);
+        m_span = std::span<double>(m_a128.data() + 2, n);
+        break;
+      case Layout::Offset32:
+        m_a128.resize(n + 4);
+        m_span = std::span<double>(m_a128.data() + 4, n);
         break;
     }
     // Deterministic, non-trivial values in [0.5, 1.5)
@@ -191,7 +209,7 @@ static void BM_Sum(benchmark::State& state) {
     benchmark::DoNotOptimize(kernel_sum(x.span()));
   }
   state.SetBytesProcessed(static_cast<int64_t>(state.iterations() * n * sizeof(double)));
-  state.counters["offset_mod_128"] = x.offsetMod128();
+  state.counters["x_offset_mod_128"] = x.offsetMod128();
 }
 
 template <Layout L>
@@ -203,7 +221,8 @@ static void BM_Dot(benchmark::State& state) {
     benchmark::DoNotOptimize(kernel_dot(x.span(), y.span()));
   }
   state.SetBytesProcessed(static_cast<int64_t>(state.iterations() * 2 * n * sizeof(double)));
-  state.counters["offset_mod_128"] = x.offsetMod128();
+  state.counters["x_offset_mod_128"] = x.offsetMod128();
+  state.counters["y_offset_mod_128"] = y.offsetMod128();
 }
 
 template <Layout L>
@@ -216,7 +235,8 @@ static void BM_Axpy(benchmark::State& state) {
     benchmark::ClobberMemory();
   }
   state.SetBytesProcessed(static_cast<int64_t>(state.iterations() * 3 * n * sizeof(double)));
-  state.counters["offset_mod_128"] = x.offsetMod128();
+  state.counters["x_offset_mod_128"] = x.offsetMod128();
+  state.counters["y_offset_mod_128"] = y.offsetMod128();
 }
 
 template <Layout L>
@@ -229,7 +249,8 @@ static void BM_Cubic(benchmark::State& state) {
     benchmark::ClobberMemory();
   }
   state.SetBytesProcessed(static_cast<int64_t>(state.iterations() * 2 * n * sizeof(double)));
-  state.counters["offset_mod_128"] = x.offsetMod128();
+  state.counters["x_offset_mod_128"] = x.offsetMod128();
+  state.counters["y_offset_mod_128"] = y.offsetMod128();
 }
 
 template <Layout L>
@@ -243,7 +264,8 @@ static void BM_Stencil(benchmark::State& state) {
     benchmark::ClobberMemory();
   }
   state.SetBytesProcessed(static_cast<int64_t>(state.iterations() * 2 * side * side * sizeof(double)));
-  state.counters["offset_mod_128"] = in.offsetMod128();
+  state.counters["in_offset_mod_128"] = in.offsetMod128();
+  state.counters["out_offset_mod_128"] = out.offsetMod128();
 }
 
 template <Layout L>
@@ -254,7 +276,7 @@ static void BM_SumAssumeAligned64(benchmark::State& state) {
     benchmark::DoNotOptimize(kernel_sum_assume_aligned64(x.span()));
   }
   state.SetBytesProcessed(static_cast<int64_t>(state.iterations() * n * sizeof(double)));
-  state.counters["offset_mod_128"] = x.offsetMod128();
+  state.counters["x_offset_mod_128"] = x.offsetMod128();
 }
 
 template <Layout L>
@@ -267,17 +289,20 @@ static void BM_AxpyAssumeAligned64(benchmark::State& state) {
     benchmark::ClobberMemory();
   }
   state.SetBytesProcessed(static_cast<int64_t>(state.iterations() * 3 * n * sizeof(double)));
-  state.counters["offset_mod_128"] = x.offsetMod128();
+  state.counters["x_offset_mod_128"] = x.offsetMod128();
+  state.counters["y_offset_mod_128"] = y.offsetMod128();
 }
 
-// 1 Ki doubles (8 KiB, L1), 32 Ki doubles (256 KiB, L2), 4 Mi doubles (32 MiB, memory bound)
-#define ALIGN_SIZES Arg(1 << 10)->Arg(1 << 15)->Arg(1 << 22)
+// Not powers of two (see header): 37, 251, 1003 doubles (L1), 30011 (~234 KiB, L2), 4000037 (~32 MB, memory bound)
+#define ALIGN_SIZES Arg(37)->Arg(251)->Arg(1003)->Arg(30011)->Arg(4000037)
 
 #define ALIGN_BENCH_ALL_LAYOUTS(BM)                    \
   BENCHMARK_TEMPLATE(BM, Layout::Default)->ALIGN_SIZES;   \
   BENCHMARK_TEMPLATE(BM, Layout::Aligned64)->ALIGN_SIZES; \
   BENCHMARK_TEMPLATE(BM, Layout::Aligned128)->ALIGN_SIZES; \
-  BENCHMARK_TEMPLATE(BM, Layout::Misaligned8)->ALIGN_SIZES
+  BENCHMARK_TEMPLATE(BM, Layout::Offset8)->ALIGN_SIZES;    \
+  BENCHMARK_TEMPLATE(BM, Layout::Offset16)->ALIGN_SIZES;   \
+  BENCHMARK_TEMPLATE(BM, Layout::Offset32)->ALIGN_SIZES
 
 ALIGN_BENCH_ALL_LAYOUTS(BM_Sum);
 ALIGN_BENCH_ALL_LAYOUTS(BM_Dot);
