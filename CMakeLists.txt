@@ -264,6 +264,21 @@ int main() { }"
       CXX_STANDARD_REQUIRED ON
       CXX_EXTENSIONS OFF
     )
+  elseif (bench_name MATCHES "alignment_vectorization")
+    # Built twice: EnergyPlus-like default flags, and native + fast math (like NatLabRockies/EnergyPlus#11816)
+    add_executable( ${bench_name} ${bench_file} )
+    target_link_libraries(${bench_name} PRIVATE benchmark::benchmark_main)
+    target_compile_options(${bench_name} PRIVATE -ffp-contract=off)
+
+    add_executable( ${bench_name}_native ${bench_file} )
+    target_link_libraries(${bench_name}_native PRIVATE benchmark::benchmark_main)
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64|ARM64")
+      target_compile_options(${bench_name}_native PRIVATE -mcpu=native)
+    else()
+      target_compile_options(${bench_name}_native PRIVATE -march=native)
+    endif()
+    target_compile_options(${bench_name}_native PRIVATE -ffast-math -fno-finite-math-only)
+
   else()
     add_executable( ${bench_name} ${bench_file} )
     target_link_libraries(${bench_name} PRIVATE
